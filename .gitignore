@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# Airflow
+logs/
+
+# Tools/IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Env
+.env

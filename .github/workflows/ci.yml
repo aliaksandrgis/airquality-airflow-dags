@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+      - name: Lint DAGs
+        run: ruff check dags
+      - name: Import check
+        run: |
+          export AIRFLOW__CORE__LOAD_EXAMPLES=False
+          python - <<'PY'
+          import os
+          import sys
+          sys.path.append("dags")
+          # simple import sweep
+          for root, _, files in os.walk("dags"):
+              for f in files:
+                  if f.endswith(".py"):
+                      __import__(f[:-3])
+          PY
