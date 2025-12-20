@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.utils.dates import days_ago
