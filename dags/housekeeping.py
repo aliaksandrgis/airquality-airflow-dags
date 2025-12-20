@@ -1,12 +1,27 @@
 from __future__ import annotations
 
+import os
+from datetime import timedelta
+from pathlib import Path
+
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.utils.dates import days_ago
 
+PIPELINE_ROOT = Path(
+    os.environ.get("AIRQUALITY_DATA_PIPELINE_ROOT", "/home/pc/airquality-data-pipeline")
+)
+RUN_SCRIPT = Path(
+    os.environ.get(
+        "AIRQUALITY_PRODUCER_RUNNER",
+        PIPELINE_ROOT / "scripts" / "run_producer.sh",
+    )
+)
+
 default_args = {
     "owner": "airquality",
-    "retries": 0,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
 }
 
 
@@ -18,30 +33,12 @@ with DAG(
     start_date=days_ago(1),
     catchup=False,
 ) as dag:
-    # Remove measurements older than 7 days to keep the table lean.
-    # Requires Supabase/Postgres creds in env: SUPABASE_HOST, SUPABASE_USER, SUPABASE_PASSWORD.
-    # Adjust DB name/SSL as needed.
+    # Prune measurements older than 7 days using the same pipeline runtime (.env, .venv)
+    # as ingestion tasks.
     prune_measurements = BashOperator(
         task_id="prune_measurements",
-        bash_command=r"""
-        set -euo pipefail
-        : "${SUPABASE_HOST:?Missing SUPABASE_HOST}"
-        : "${SUPABASE_USER:?Missing SUPABASE_USER}"
-        : "${SUPABASE_PASSWORD:?Missing SUPABASE_PASSWORD}"
-        DB_NAME="${SUPABASE_DB:-postgres}"
-
-        export PGPASSWORD="${SUPABASE_PASSWORD}"
-        psql "sslmode=require host=${SUPABASE_HOST} user=${SUPABASE_USER} dbname=${DB_NAME}" <<'SQL'
-        delete from public.measurements_curated
-        where observed_at < now() - interval '7 days';
-        SQL
-        """,
-        env={
-            "SUPABASE_HOST": "{{ var.value.SUPABASE_HOST | default('', true) }}",
-            "SUPABASE_USER": "{{ var.value.SUPABASE_USER | default('', true) }}",
-            "SUPABASE_PASSWORD": "{{ var.value.SUPABASE_PASSWORD | default('', true) }}",
-            "SUPABASE_DB": "{{ var.value.SUPABASE_DB | default('postgres', true) }}",
-        },
+        bash_command=f"{RUN_SCRIPT} app.housekeeping",
+        env={"PYTHONUNBUFFERED": "1"},
     )
 
     # Delete local logs older than 7 days for spark job and producer.
