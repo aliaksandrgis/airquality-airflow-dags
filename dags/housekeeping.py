@@ -15,7 +15,7 @@ with DAG(
     dag_id="airquality_housekeeping",
     description="Daily cleanup: prune old measurements and rotate logs",
     default_args=default_args,
-    schedule_interval="0 3 * * *",
+    schedule_interval="0 3 * * *",  # 03:00 UTC
     start_date=days_ago(1),
     catchup=False,
 ) as dag:
@@ -23,7 +23,7 @@ with DAG(
     # Requires Supabase/Postgres creds in env: SUPABASE_HOST, SUPABASE_USER, SUPABASE_PASSWORD.
     # Adjust DB name/SSL as needed.
     prune_measurements = BashOperator(
-        task_id="prune_old_measurements",
+        task_id="prune_measurements",
         bash_command=r"""
         set -euo pipefail
         : "${SUPABASE_HOST:?Missing SUPABASE_HOST}"
@@ -38,28 +38,28 @@ with DAG(
         SQL
         """,
         env={
-            "SUPABASE_HOST": "{{ var.value.get('SUPABASE_HOST', '') }}",
-            "SUPABASE_USER": "{{ var.value.get('SUPABASE_USER', '') }}",
-            "SUPABASE_PASSWORD": "{{ var.value.get('SUPABASE_PASSWORD', '') }}",
-            "SUPABASE_DB": "{{ var.value.get('SUPABASE_DB', 'postgres') }}",
+            "SUPABASE_HOST": "{{ var.value.SUPABASE_HOST | default('', true) }}",
+            "SUPABASE_USER": "{{ var.value.SUPABASE_USER | default('', true) }}",
+            "SUPABASE_PASSWORD": "{{ var.value.SUPABASE_PASSWORD | default('', true) }}",
+            "SUPABASE_DB": "{{ var.value.SUPABASE_DB | default('postgres', true) }}",
         },
     )
 
     # Delete local logs older than 7 days for spark job and producer.
     cleanup_logs = BashOperator(
-        task_id="cleanup_logs",
+        task_id="clean_logs",
         bash_command=r"""
         set -euo pipefail
         if [ -n "${SPARK_LOG_DIR:-}" ]; then
-          find "${SPARK_LOG_DIR}" -type f -mtime +7 -delete 2>/dev/null || true
+          find "${SPARK_LOG_DIR}" -type f -mtime +7 -print -delete 2>/dev/null || true
         fi
         if [ -n "${PIPELINE_LOG_DIR:-}" ]; then
-          find "${PIPELINE_LOG_DIR}" -type f -mtime +7 -delete 2>/dev/null || true
+          find "${PIPELINE_LOG_DIR}" -type f -mtime +7 -print -delete 2>/dev/null || true
         fi
         """,
         env={
-            "SPARK_LOG_DIR": "{{ var.value.get('AIRQUALITY_SPARK_LOG_DIR', '') }}",
-            "PIPELINE_LOG_DIR": "{{ var.value.get('AIRQUALITY_PIPELINE_LOG_DIR', '') }}",
+            "SPARK_LOG_DIR": "{{ var.value.AIRQUALITY_SPARK_LOG_DIR | default('', true) }}",
+            "PIPELINE_LOG_DIR": "{{ var.value.AIRQUALITY_PIPELINE_LOG_DIR | default('', true) }}",
         },
     )
 
