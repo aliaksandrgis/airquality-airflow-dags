@@ -47,10 +47,10 @@ with DAG(
         bash_command=r"""
         set -euo pipefail
         if [ -n "${SPARK_LOG_DIR:-}" ]; then
-          find "${SPARK_LOG_DIR}" -type f -mtime +7 -print -delete 2>/dev/null || true
+          find "${SPARK_LOG_DIR}" -type f -mmin +1440 -print -delete 2>/dev/null || true
         fi
         if [ -n "${PIPELINE_LOG_DIR:-}" ]; then
-          find "${PIPELINE_LOG_DIR}" -type f -mtime +7 -print -delete 2>/dev/null || true
+          find "${PIPELINE_LOG_DIR}" -type f -mmin +1440 -print -delete 2>/dev/null || true
         fi
         """,
         env={
