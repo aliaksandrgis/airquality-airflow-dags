@@ -11,6 +11,9 @@ Lightweight DAG collection for orchestration (station refresh, ingestion, monito
 docker compose up airflow-webserver airflow-scheduler
 ```
 
+## VPS (Airflow + Spark)
+See `deploy/vps/README.md`.
+
 ### DAG `airquality_data_pipeline`
 - Requires the producer wrapper `scripts/run_producer.sh` from the `airquality-data-pipeline` repo. Configure paths via env vars:
   - `AIRQUALITY_DATA_PIPELINE_ROOT` (default `/home/pc/airquality-data-pipeline`);
