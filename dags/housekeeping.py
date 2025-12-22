@@ -33,24 +33,39 @@ with DAG(
     start_date=days_ago(1),
     catchup=False,
 ) as dag:
-    # Prune measurements older than 7 days using the same pipeline runtime (.env, .venv)
-    # as ingestion tasks.
-    prune_measurements = BashOperator(
-        task_id="prune_measurements",
-        bash_command=f"{RUN_SCRIPT} app.housekeeping",
-        env={"PYTHONUNBUFFERED": "1"},
-    )
-
-    # Delete local logs older than 7 days for spark job and producer.
+    # Rotate/truncate pipeline logs daily so single log files don't grow forever,
+    # then delete rotated files older than 24h.
     cleanup_logs = BashOperator(
         task_id="clean_logs",
         bash_command=r"""
         set -euo pipefail
-        if [ -n "${SPARK_LOG_DIR:-}" ]; then
-          find "${SPARK_LOG_DIR}" -type f -mmin +1440 -print -delete 2>/dev/null || true
-        fi
+        ROTATE_SUFFIX="$(date -u +%F_%H%M%S)"
+
+        # Pipeline logs are appended to a single file per module (app_*.log). To keep only
+        # ~1 day of lines without rewriting big files, rotate by renaming and recreating.
         if [ -n "${PIPELINE_LOG_DIR:-}" ]; then
-          find "${PIPELINE_LOG_DIR}" -type f -mmin +1440 -print -delete 2>/dev/null || true
+          mkdir -p "${PIPELINE_LOG_DIR}"
+          shopt -s nullglob
+          for f in "${PIPELINE_LOG_DIR}"/*.log; do
+            [ -f "$f" ] || continue
+            # Rotate only non-empty logs
+            if [ -s "$f" ]; then
+              mv "$f" "${f}.${ROTATE_SUFFIX}" 2>/dev/null || true
+              : > "$f"
+            fi
+          done
+          # Delete rotated logs older than 24h
+          find "${PIPELINE_LOG_DIR}" -type f -name "*.log.*" -mmin +1440 -print -delete 2>/dev/null || true
+        fi
+
+        if [ -n "${SPARK_LOG_DIR:-}" ]; then
+          # Spark streaming job writes continuously; removing the file won't help because
+          # the running process will keep the file descriptor open. Truncate the file
+          # instead to drop old lines while keeping the path stable.
+          if [ -f "${SPARK_LOG_DIR}/live_measurements.log" ]; then
+            : > "${SPARK_LOG_DIR}/live_measurements.log"
+          fi
+          find "${SPARK_LOG_DIR}" -type f -mmin +1440 -print -delete 2>/dev/null || true
         fi
         """,
         env={
@@ -59,4 +74,12 @@ with DAG(
         },
     )
 
-    prune_measurements >> cleanup_logs
+    # Prune measurements older than 7 days using the same pipeline runtime (.env, .venv)
+    # as ingestion tasks.
+    prune_measurements = BashOperator(
+        task_id="prune_measurements",
+        bash_command=f"{RUN_SCRIPT} app.housekeeping",
+        env={"PYTHONUNBUFFERED": "1"},
+    )
+
+    cleanup_logs >> prune_measurements
