@@ -64,3 +64,6 @@ Access it via SSH tunnel or Tailscale SSH port forwarding.
 ## Scheduling the pipeline
 The `airquality_data_pipeline` DAG runs one-shot producer modules inside Docker containers (via `DockerOperator`),
 so you should NOT keep the long-running `producer` service running in parallel (it will duplicate ingestion).
+
+If Airflow image build fails, make sure you are building from `deploy/vps` and that your host has network access
+to fetch Airflow constraints and PyPI packages.
