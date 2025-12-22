@@ -1,14 +1,16 @@
-# VPS deploy (Airflow + Spark)
+# VPS deploy (Airflow + Spark + Producer)
 
 This folder contains a minimal Docker Compose setup to run:
 - Airflow (LocalExecutor + Postgres metadata DB)
 - Spark streaming job (`airquality-spark-jobs`)
+- Producer loop (`airquality-data-pipeline`)
 
 Assumption: repositories are checked out as siblings, e.g.:
 ```
 /opt/airquality/
   airquality-airflow-dags/
   airquality-spark-jobs/
+  airquality-data-pipeline/
 ```
 
 ## Prereqs (Ubuntu)
@@ -19,6 +21,7 @@ From `airquality-airflow-dags/deploy/vps`:
 ```bash
 cp .env.airflow.example .env.airflow
 cp .env.spark.example .env.spark
+cp .env.pipeline.example .env.pipeline
 mkdir -p ./volumes/airflow/{logs,plugins} ./data/{bronze,tmp}
 ```
 

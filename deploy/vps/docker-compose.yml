@@ -72,5 +72,13 @@ services:
       - spark.sql.shuffle.partitions=8
       - jobs/live_measurements.py
 
+  producer:
+    build:
+      context: ../../../airquality-data-pipeline
+    restart: unless-stopped
+    env_file:
+      - ./.env.pipeline
+    command: ["app.main"]
+
 volumes:
   airflow_postgres_data:

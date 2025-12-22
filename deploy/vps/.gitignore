@@ -1,5 +1,5 @@
 .env.airflow
 .env.spark
+.env.pipeline
 data/
 volumes/
-
