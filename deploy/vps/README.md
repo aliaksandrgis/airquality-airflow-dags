@@ -25,6 +25,11 @@ cp .env.pipeline.example .env.pipeline
 mkdir -p ./volumes/airflow/{logs,plugins} ./data/{bronze,tmp}
 ```
 
+Set `DOCKER_GID` in `.env.airflow` (needed for Airflow to run `DockerOperator` tasks):
+```bash
+getent group docker | cut -d: -f3
+```
+
 Generate Airflow keys and put them into `.env.airflow`:
 ```bash
 python3 - <<'PY'

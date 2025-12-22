@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: airflow.Dockerfile
     image: airquality-airflow:2.8.1
-    user: "0:0"
+    user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     depends_on:
       - airflow-postgres
@@ -32,6 +32,8 @@ services:
       - ./volumes/airflow/logs:/opt/airflow/logs
       - ./volumes/airflow/plugins:/opt/airflow/plugins
       - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:-0}"
     ports:
       - "127.0.0.1:8080:8080"
     command: webserver
@@ -41,7 +43,7 @@ services:
       context: .
       dockerfile: airflow.Dockerfile
     image: airquality-airflow:2.8.1
-    user: "0:0"
+    user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     depends_on:
       - airflow-postgres
@@ -57,6 +59,8 @@ services:
       - ./volumes/airflow/logs:/opt/airflow/logs
       - ./volumes/airflow/plugins:/opt/airflow/plugins
       - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:-0}"
     command: scheduler
 
   spark-live:

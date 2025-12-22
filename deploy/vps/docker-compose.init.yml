@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: airflow.Dockerfile
     image: airquality-airflow:2.8.1
-    user: "0:0"
+    user: "${AIRFLOW_UID:-50000}:0"
     restart: "no"
     depends_on:
       - airflow-postgres
