@@ -34,7 +34,7 @@ print("AIRFLOW__WEBSERVER__SECRET_KEY=" + secrets.token_hex(16))
 PY
 ```
 
-Fix volume permissions for Airflow (uid 50000 by default):
+Fix volume permissions (optional; safe to run):
 ```bash
 sudo chown -R 50000:0 ./volumes/airflow
 sudo chmod -R u+rwX,g+rwX ./volumes/airflow
@@ -48,10 +48,14 @@ docker-compose -f docker-compose.yml -f docker-compose.init.yml run --rm airflow
 
 Start:
 ```bash
-docker-compose up -d --build
+docker-compose up -d --build airflow-postgres airflow-webserver airflow-scheduler spark-live
 docker-compose ps
 ```
 
 ## Airflow UI
 Compose binds the webserver to `127.0.0.1:8080` on the host.
 Access it via SSH tunnel or Tailscale SSH port forwarding.
+
+## Scheduling the pipeline
+The `airquality_data_pipeline` DAG runs one-shot producer modules inside Docker containers (via `DockerOperator`),
+so you should NOT keep the long-running `producer` service running in parallel (it will duplicate ingestion).

@@ -2,8 +2,11 @@ version: "3.8"
 
 services:
   airflow-init:
-    image: apache/airflow:2.8.1
-    user: "${AIRFLOW_UID:-50000}:0"
+    build:
+      context: .
+      dockerfile: airflow.Dockerfile
+    image: airquality-airflow:2.8.1
+    user: "0:0"
     restart: "no"
     depends_on:
       - airflow-postgres
@@ -29,4 +32,3 @@ services:
           --email $${AIRFLOW_ADMIN_EMAIL:-admin@example.com}
         || true
       "
-

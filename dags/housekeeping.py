@@ -2,21 +2,38 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
-from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.dates import days_ago
 
-PIPELINE_ROOT = Path(
-    os.environ.get("AIRQUALITY_DATA_PIPELINE_ROOT", "/home/pc/airquality-data-pipeline")
-)
-RUN_SCRIPT = Path(
-    os.environ.get(
-        "AIRQUALITY_PRODUCER_RUNNER",
-        PIPELINE_ROOT / "scripts" / "run_producer.sh",
-    )
-)
+PRODUCER_IMAGE = os.environ.get("AIRQUALITY_PRODUCER_IMAGE", "vps_producer:latest")
+
+
+def _pipeline_env() -> dict[str, str]:
+    keys = [
+        # Kafka (Confluent Cloud)
+        "KAFKA_BOOTSTRAP",
+        "KAFKA_TOPIC",
+        "KAFKA_SECURITY_PROTOCOL",
+        "KAFKA_SASL_MECHANISM",
+        "KAFKA_SASL_USERNAME",
+        "KAFKA_SASL_PASSWORD",
+        # Supabase / Postgres catalog
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+        "POSTGRES_DB",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_SSLMODE",
+    ]
+    env: dict[str, str] = {}
+    for key in keys:
+        value = os.environ.get(key)
+        if value is not None and value != "":
+            env[key] = value
+    return env
 
 default_args = {
     "owner": "airquality",
@@ -74,12 +91,14 @@ with DAG(
         },
     )
 
-    # Prune measurements older than 7 days using the same pipeline runtime (.env, .venv)
-    # as ingestion tasks.
-    prune_measurements = BashOperator(
+    prune_measurements = DockerOperator(
         task_id="prune_measurements",
-        bash_command=f"{RUN_SCRIPT} app.housekeeping",
-        env={"PYTHONUNBUFFERED": "1"},
+        image=PRODUCER_IMAGE,
+        command="app.housekeeping",
+        environment={"PYTHONUNBUFFERED": "1", **_pipeline_env()},
+        docker_url="unix://var/run/docker.sock",
+        auto_remove=True,
+        mount_tmp_dir=False,
     )
 
     cleanup_logs >> prune_measurements
