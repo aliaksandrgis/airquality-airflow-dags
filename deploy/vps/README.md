@@ -37,6 +37,12 @@ sudo chown -R 50000:0 ./volumes/airflow
 sudo chmod -R u+rwX,g+rwX ./volumes/airflow
 ```
 
+Initialize Airflow DB (one-time, or after upgrades):
+```bash
+docker-compose up -d airflow-postgres
+docker-compose -f docker-compose.yml -f docker-compose.init.yml run --rm airflow-init
+```
+
 Start:
 ```bash
 docker-compose up -d --build
@@ -46,4 +52,3 @@ docker-compose ps
 ## Airflow UI
 Compose binds the webserver to `127.0.0.1:8080` on the host.
 Access it via SSH tunnel or Tailscale SSH port forwarding.
-
