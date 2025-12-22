@@ -18,7 +18,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          AIRFLOW_VERSION="2.8.1"
+          PY_MAJMIN="$(python -c 'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))')"
+          CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PY_MAJMIN}.txt"
+          pip install -r requirements.txt --constraint "${CONSTRAINT_URL}"
           pip install ruff
       - name: Lint DAGs
         run: ruff check dags
