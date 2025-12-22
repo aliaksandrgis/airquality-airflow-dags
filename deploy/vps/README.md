@@ -19,13 +19,14 @@ Install Docker + Compose (either `docker compose` v2 or `docker-compose` v1).
 ## Setup
 From `airquality-airflow-dags/deploy/vps`:
 ```bash
+cp .env.example .env
 cp .env.airflow.example .env.airflow
 cp .env.spark.example .env.spark
 cp .env.pipeline.example .env.pipeline
 mkdir -p ./volumes/airflow/{logs,plugins} ./data/{bronze,tmp}
 ```
 
-Set `DOCKER_GID` in `.env.airflow` (needed for Airflow to run `DockerOperator` tasks):
+Set `DOCKER_GID` in `.env` (needed for Airflow to run `DockerOperator` tasks):
 ```bash
 getent group docker | cut -d: -f3
 ```
@@ -67,3 +68,17 @@ so you should NOT keep the long-running `producer` service running in parallel (
 
 If Airflow image build fails, make sure you are building from `deploy/vps` and that your host has network access
 to fetch Airflow constraints and PyPI packages.
+
+## Troubleshooting
+**`docker-compose` v1 KeyError: `ContainerConfig`**
+
+On some Docker versions, legacy `docker-compose` v1 (`/usr/bin/docker-compose`) can crash when recreating existing
+containers (stack trace ends with `KeyError: 'ContainerConfig'`).
+
+Fix: remove the old containers and start them again:
+```bash
+docker rm -f vps_airflow-webserver_1 vps_airflow-scheduler_1 2>/dev/null || true
+docker-compose up -d airflow-webserver airflow-scheduler
+```
+
+If it keeps happening, install Docker Compose v2 (recommended) and use `docker compose ...` instead.

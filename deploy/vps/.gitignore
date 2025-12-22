@@ -1,3 +1,4 @@
+.env
 .env.airflow
 .env.spark
 .env.pipeline
