@@ -69,6 +69,10 @@ so you should NOT keep the long-running `producer` service running in parallel (
 If Airflow image build fails, make sure you are building from `deploy/vps` and that your host has network access
 to fetch Airflow constraints and PyPI packages.
 
+## Logs (don’t grow forever)
+- Container logs (Spark/Airflow/Postgres/Producer) are rotated by Docker (`max-size=50m`, `max-file=5`) via `logging:` in `docker-compose.yml`.
+- Airflow task logs live in `./volumes/airflow/logs` and are pruned daily by `airquality_housekeeping` (default 14 days). Adjust `AIRFLOW_TASK_LOG_RETENTION_DAYS` in `.env.airflow`.
+
 ## Troubleshooting
 **`docker-compose` v1 KeyError: `ContainerConfig`**
 

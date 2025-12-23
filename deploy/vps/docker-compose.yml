@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   airflow-postgres:
     image: postgres:16
@@ -10,6 +8,11 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - airflow_postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   airflow-webserver:
     build:
@@ -37,6 +40,11 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     command: webserver
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   airflow-scheduler:
     build:
@@ -62,6 +70,11 @@ services:
     group_add:
       - "${DOCKER_GID:-0}"
     command: scheduler
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   spark-live:
     build:
@@ -85,6 +98,11 @@ services:
       - --conf
       - spark.sql.shuffle.partitions=8
       - jobs/live_measurements.py
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   producer:
     build:
@@ -93,6 +111,11 @@ services:
     env_file:
       - ./.env.pipeline
     command: ["app.main"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 volumes:
   airflow_postgres_data:

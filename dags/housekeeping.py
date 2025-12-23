@@ -50,6 +50,19 @@ with DAG(
     start_date=days_ago(1),
     catchup=False,
 ) as dag:
+    cleanup_airflow_task_logs = BashOperator(
+        task_id="cleanup_airflow_task_logs",
+        bash_command=r"""
+        set -euo pipefail
+        DAYS="${AIRFLOW_TASK_LOG_RETENTION_DAYS:-14}"
+        BASE="${AIRFLOW_TASK_LOG_DIR:-/opt/airflow/logs}"
+        if [ -d "$BASE" ]; then
+          find "$BASE" -type f -mtime +"$DAYS" -print -delete 2>/dev/null || true
+          find "$BASE" -type d -empty -print -delete 2>/dev/null || true
+        fi
+        """,
+    )
+
     # Rotate/truncate pipeline logs daily so single log files don't grow forever,
     # then delete rotated files older than 24h.
     cleanup_logs = BashOperator(
@@ -101,4 +114,4 @@ with DAG(
         mount_tmp_dir=False,
     )
 
-    cleanup_logs >> prune_measurements
+    cleanup_airflow_task_logs >> cleanup_logs >> prune_measurements
