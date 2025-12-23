@@ -99,8 +99,8 @@ with DAG(
         fi
         """,
         env={
-            "SPARK_LOG_DIR": "{{ var.value.AIRQUALITY_SPARK_LOG_DIR | default('', true) }}",
-            "PIPELINE_LOG_DIR": "{{ var.value.AIRQUALITY_PIPELINE_LOG_DIR | default('', true) }}",
+            "SPARK_LOG_DIR": "{{ var.value.get('AIRQUALITY_SPARK_LOG_DIR', '') }}",
+            "PIPELINE_LOG_DIR": "{{ var.value.get('AIRQUALITY_PIPELINE_LOG_DIR', '') }}",
         },
     )
 
